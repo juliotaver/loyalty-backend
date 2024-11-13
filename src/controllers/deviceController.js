@@ -1,6 +1,46 @@
 // backend/src/controllers/deviceController.js
 import Client from '../models/Client.js';
 
+// Función de prueba
+export const testRegistration = async (req, res) => {
+  try {
+    const baseUrl = process.env.BACKEND_URL || 'https://loyalty-backend-production-d6ae.up.railway.app';
+    
+    const testData = {
+      deviceLibraryIdentifier: "test-device",
+      passTypeIdentifier: process.env.PASS_TYPE_IDENTIFIER,
+      serialNumber: "test-serial",
+      pushToken: "test-token"
+    };
+
+    console.log('Test de registro con datos:', testData);
+    console.log('Variables de entorno:', {
+      BACKEND_URL: process.env.BACKEND_URL,
+      PASS_TYPE_IDENTIFIER: process.env.PASS_TYPE_IDENTIFIER,
+      NODE_ENV: process.env.NODE_ENV
+    });
+
+    res.json({
+      success: true,
+      message: 'Endpoint de registro disponible',
+      testData,
+      webServiceURL: `${baseUrl}/api`,
+      environment: process.env.NODE_ENV,
+      routes: {
+        register: `${baseUrl}/api/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber/:pushToken`,
+        unregister: `${baseUrl}/api/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber`
+      }
+    });
+  } catch (error) {
+    console.error('Error en test de registro:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+};
+
+// Registro de dispositivo
 export const registerDevice = async (req, res) => {
   try {
     const { deviceLibraryIdentifier, passTypeIdentifier, serialNumber, pushToken } = req.params;
@@ -51,6 +91,7 @@ export const registerDevice = async (req, res) => {
   }
 };
 
+// Eliminación de registro
 export const unregisterDevice = async (req, res) => {
   try {
     const { deviceLibraryIdentifier, passTypeIdentifier, serialNumber } = req.params;
@@ -61,7 +102,6 @@ export const unregisterDevice = async (req, res) => {
       serialNumber
     });
 
-    // Verificar que el passTypeIdentifier coincide
     if (passTypeIdentifier !== process.env.PASS_TYPE_IDENTIFIER) {
       return res.status(401).json({
         success: false,
@@ -69,7 +109,6 @@ export const unregisterDevice = async (req, res) => {
       });
     }
 
-    // Buscar y actualizar el cliente
     const client = await Client.findOne({ 
       passSerialNumber: serialNumber,
       deviceLibraryIdentifier: deviceLibraryIdentifier
@@ -82,7 +121,6 @@ export const unregisterDevice = async (req, res) => {
       });
     }
 
-    // Limpiar información del dispositivo
     client.deviceLibraryIdentifier = undefined;
     client.pushToken = undefined;
     await client.save();
