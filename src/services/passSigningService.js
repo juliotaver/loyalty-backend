@@ -1,23 +1,21 @@
 // src/services/passSigningService.js
 import fs from 'fs/promises';
-import { createWriteStream } from 'fs';
+import { createWriteStream, createReadStream } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import archiver from 'archiver';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export class PassSigningService {
   constructor() {
-    // Usar rutas absolutas basadas en el directorio del proyecto
     this.certsPath = process.env.NODE_ENV === 'production'
       ? path.join(process.cwd(), 'config/certificates')
       : process.env.PASS_CERTIFICATES_PATH;
-    
-    console.log('Certificates path:', this.certsPath);
   }
 
   async createManifest(passDirectory) {
@@ -25,7 +23,7 @@ export class PassSigningService {
       const manifest = {};
       const files = await fs.readdir(passDirectory);
 
-      // Procesar archivos en orden específico
+      // Procesar archivos en orden específico para consistencia
       const fileOrder = ['pass.json', 'icon.png', 'logo.png', 'strip.png'];
       
       for (const fileName of fileOrder) {
@@ -49,41 +47,23 @@ export class PassSigningService {
 
   async signManifest(manifestPath) {
     try {
-      if (!manifestPath) {
-        throw new Error('manifestPath is required');
-      }
-
-      const manifest = await fs.readFile(manifestPath);
-      const signaturePath = path.join(dirname(manifestPath), 'signature');
-
-      // Verificar que los certificados existen
       const certPath = path.join(this.certsPath, 'pass.cer');
       const keyPath = path.join(this.certsPath, 'pass.key');
       const wwdrPath = path.join(this.certsPath, 'wwdr.pem');
+      const signaturePath = path.join(dirname(manifestPath), 'signature');
 
-      // Log de verificación
-      console.log('Verificando certificados:');
-      console.log('Cert path:', certPath);
-      console.log('Key path:', keyPath);
-      console.log('WWDR path:', wwdrPath);
+      // Usar OpenSSL directamente para la firma PKCS#7
+      const command = `openssl smime -binary -sign \
+        -signer "${certPath}" \
+        -inkey "${keyPath}" \
+        -certfile "${wwdrPath}" \
+        -in "${manifestPath}" \
+        -out "${signaturePath}" \
+        -outform DER`;
 
-      // Leer certificados
-      const [cert, key, wwdr] = await Promise.all([
-        fs.readFile(certPath),
-        fs.readFile(keyPath),
-        fs.readFile(wwdrPath)
-      ]);
-
-      // Crear la firma
-      const sign = crypto.createSign('sha1WithRSAEncryption');
-      sign.update(manifest);
-      const signature = sign.sign({
-        key: key,
-        cert: cert
-      });
-
-      await fs.writeFile(signaturePath, signature);
+      execSync(command);
       return signaturePath;
+
     } catch (error) {
       console.error('Error signing manifest:', error);
       throw error;
@@ -96,6 +76,10 @@ export class PassSigningService {
       
       return new Promise(async (resolve, reject) => {
         try {
+          // Crear y firmar el manifest primero
+          await this.createManifest(passDirectory);
+          await this.signManifest(path.join(passDirectory, 'manifest.json'));
+
           const output = createWriteStream(outputPath);
           const archive = archiver('zip', {
             zlib: { level: 9 }
@@ -105,15 +89,11 @@ export class PassSigningService {
           archive.on('error', reject);
           archive.pipe(output);
 
-          // Crear y firmar el manifest
-          await this.createManifest(passDirectory);
-          await this.signManifest(path.join(passDirectory, 'manifest.json'));
-
-          // Añadir archivos en orden específico
+          // Añadir archivos en el orden correcto
           const fileOrder = [
-            'pass.json',
             'manifest.json',
             'signature',
+            'pass.json',
             'icon.png',
             'logo.png',
             'strip.png'
@@ -125,7 +105,7 @@ export class PassSigningService {
               await fs.access(filePath);
               archive.file(filePath, { name: fileName });
             } catch (error) {
-              console.error(`Error adding ${fileName} to archive:`, error);
+              console.error(`Archivo no encontrado: ${fileName}`, error);
             }
           }
 

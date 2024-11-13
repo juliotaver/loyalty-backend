@@ -1,128 +1,31 @@
-Starting Container
+2024-11-13T19:04:28.217Z - POST /api/clients
 
-npm WARN config production Use `--omit=dev` instead.
-> loyalty-pass-backend@1.0.0 start
+2024-11-13T19:04:28.604Z - GET /api/passes/6734f83cadd1635c294fbed8/generate
 
-> node src/index.js
-Error: URI cannot contain options with no value
+2024-11-13T19:04:51.583Z - GET /api/passes/PASS1731524668298KNY6T/download
 
-container event container restart
+Certificados path: /app/config/certificates
 
-npm WARN config production Use `--omit=dev` instead.
+Imágenes path: /app/config/images
 
- 
+Verificando certificados:
 
-> loyalty-pass-backend@1.0.0 start
+Cert path: /app/config/certificates/pass.cer
 
-> node src/index.js
+Key path: /app/config/certificates/pass.key
 
- 
+WWDR path: /app/config/certificates/wwdr.pem
 
-Error: URI cannot contain options with no value
+2024-11-13T19:05:05.216Z - GET /api/passes/PASS1731524668298KNY6T/download
 
-container event container restart
+Certificados path: /app/config/certificates
 
-npm WARN config production Use `--omit=dev` instead.
+Imágenes path: /app/config/images
 
- 
+Verificando certificados:
 
-> loyalty-pass-backend@1.0.0 start
+Cert path: /app/config/certificates/pass.cer
 
-> node src/index.js
+Key path: /app/config/certificates/pass.key
 
- 
-
-Error: URI cannot contain options with no value
-
-container event container died
-
-npm WARN config production Use `--omit=dev` instead.
-
- 
-
-> loyalty-pass-backend@1.0.0 start
-
-> node src/index.js
-
- 
-
-Error: URI cannot contain options with no value
-
-container event container died
-
-npm WARN config production Use `--omit=dev` instead.
-
- 
-
-> loyalty-pass-backend@1.0.0 start
-
-> node src/index.js
-
- 
-
-Error: URI cannot contain options with no value
-
-container event container restart
-
-npm WARN config production Use `--omit=dev` instead.
-
- 
-
-> loyalty-pass-backend@1.0.0 start
-
-> node src/index.js
-
- 
-
-Error: URI cannot contain options with no value
-
-container event container restart
-
-npm WARN config production Use `--omit=dev` instead.
-
- 
-
-> loyalty-pass-backend@1.0.0 start
-
-> node src/index.js
-
- 
-
-Error: URI cannot contain options with no value
-
-container event container restart
-
-npm WARN config production Use `--omit=dev` instead.
-
- 
-
-> loyalty-pass-backend@1.0.0 start
-
-> node src/index.js
-
- 
-
-Error: URI cannot contain options with no value
-container event container restart
-npm WARN config production Use `--omit=dev` instead.
-> loyalty-pass-backend@1.0.0 start
-
-> node src/index.js
-Error: URI cannot contain options with no value
-
-container event container restart
-
-npm WARN config production Use `--omit=dev` instead.
-> loyalty-pass-backend@1.0.0 start
-
-> node src/index.js
-
-Error: URI cannot contain options with no value
-
-container event container restart
-
-npm WARN config production Use `--omit=dev` instead.
-
-> loyalty-pass-backend@1.0.0 start
-
-> node src/index.js
+WWDR path: /app/config/certificates/wwdr.pem
