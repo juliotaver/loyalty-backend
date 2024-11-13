@@ -7,6 +7,7 @@ import clientRoutes from './routes/clientRoutes.js';
 import passRoutes from './routes/passRoutes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { dirname } from 'path';  // Añadimos esta importación
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -38,4 +39,9 @@ const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+// Ruta de health check para Railway
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'Server is running' });
 });
