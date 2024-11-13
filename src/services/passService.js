@@ -34,7 +34,7 @@ export class PassService {
   async generatePass(client) {
     try {
       const serialNumber = client.passSerialNumber;
-      const webServiceURL = this.baseUrl;
+      const webServiceURL = `${this.baseUrl}/api`;
 
       console.log('Generando pase con configuración:', {
         webServiceURL,
