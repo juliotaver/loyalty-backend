@@ -10,6 +10,9 @@ import Client from './models/Client.js';
 dotenv.config();
 const app = express();
 
+// Conexión a la base de datos
+connectDB();
+
 app.use(cors());
 app.use(express.json());
 
@@ -77,5 +80,6 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/passes', passRoutes);
 
 const PORT = process.env.PORT || 3000;
-
-startServer();
+app.listen(PORT, () => {
+  console.log(`Servidor escuchando en el puerto ${PORT}`);
+});
