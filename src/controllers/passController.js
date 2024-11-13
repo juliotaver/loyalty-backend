@@ -122,9 +122,9 @@ export const scanPass = async (req, res) => {
     if (client.pushToken) {
       try {
         await passPushService.pushUpdate(client.pushToken);
-        console.log('Notificación push enviada');
+        console.log('Notificación push enviada correctamente');
       } catch (pushError) {
-        console.error('Error enviando push:', pushError);
+        console.error('Error en notificación push:', pushError);
       }
     }
 

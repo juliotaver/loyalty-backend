@@ -1,6 +1,5 @@
 // backend/src/services/passPushService.js
-import jwt from 'jsonwebtoken';
-import https from 'https';
+import http2 from 'http2';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -20,42 +19,57 @@ export class PassPushService {
   }
 
   async pushUpdate(pushToken) {
-    try {
-      console.log('Enviando push a token:', pushToken);
+    return new Promise(async (resolve, reject) => {
+      try {
+        console.log('Enviando push a token:', pushToken);
 
-      return new Promise((resolve, reject) => {
-        const options = {
-          method: 'POST',
-          host: 'api.push.apple.com',
-          path: `/3/device/${pushToken}`,
-          headers: {
-            'apns-topic': this.passTypeId,
-            'apns-push-type': 'background'
-          }
-        };
+        const client = http2.connect('https://api.push.apple.com');
 
-        console.log('Opciones de push:', options);
+        client.on('error', (err) => {
+          console.error('Error en conexión HTTP/2:', err);
+          reject(err);
+        });
 
-        const req = https.request(options, (res) => {
-          console.log('Push status:', res.statusCode);
-          if (res.statusCode === 200) {
+        const req = client.request({
+          ':method': 'POST',
+          ':path': `/3/device/${pushToken}`,
+          'apns-topic': this.passTypeId,
+          'apns-push-type': 'background',
+          'content-type': 'application/json',
+        });
+
+        req.on('response', (headers) => {
+          console.log('Respuesta push:', headers[':status']);
+          if (headers[':status'] === 200) {
             resolve();
           } else {
-            reject(new Error(`Push failed with status ${res.statusCode}`));
+            reject(new Error(`Push falló con status ${headers[':status']}`));
           }
         });
 
         req.on('error', (error) => {
-          console.error('Error en push request:', error);
+          console.error('Error en request:', error);
           reject(error);
         });
 
-        req.write(JSON.stringify({}));
-        req.end();
-      });
-    } catch (error) {
-      console.error('Error en pushUpdate:', error);
-      throw error;
-    }
+        // Payload vacío para actualización de background
+        const payload = JSON.stringify({
+          aps: {
+            'content-available': 1
+          }
+        });
+
+        req.end(payload);
+
+        // Cerrar la conexión después de enviar
+        req.on('end', () => {
+          client.close();
+        });
+
+      } catch (error) {
+        console.error('Error en pushUpdate:', error);
+        reject(error);
+      }
+    });
   }
 }
