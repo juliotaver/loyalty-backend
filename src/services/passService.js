@@ -8,6 +8,7 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// src/services/passService.js
 export class PassService {
   constructor() {
     this.passTypeId = process.env.PASS_TYPE_IDENTIFIER;
@@ -18,18 +19,29 @@ export class PassService {
     this.imagesPath = process.env.NODE_ENV === 'production'
       ? path.join(process.cwd(), 'config/images')
       : process.env.PASS_IMAGES_PATH;
+    
+    // URL base para los servicios web del pase
+    this.baseUrl = process.env.BACKEND_URL || 'https://loyalty-backend-production-d6ae.up.railway.app';
+    
+    console.log('PassService inicializado con:', {
+      passTypeId: this.passTypeId,
+      teamId: this.teamId,
+      baseUrl: this.baseUrl,
+      nodeEnv: process.env.NODE_ENV
+    });
   }
 
   async generatePass(client) {
     try {
       const serialNumber = client.passSerialNumber;
-      // URL base para los servicios web del pase
-      const webServiceURL = `${process.env.BACKEND_URL}/api`;
+      const webServiceURL = `${this.baseUrl}/api`;
 
       console.log('Generando pase con configuración:', {
         webServiceURL,
         serialNumber,
-        passTypeId: this.passTypeId
+        passTypeId: this.passTypeId,
+        baseUrl: this.baseUrl,
+        envBackendUrl: process.env.BACKEND_URL
       });
 
       const passData = {
@@ -38,7 +50,7 @@ export class PassService {
         serialNumber: serialNumber,
         teamIdentifier: this.teamId,
         webServiceURL: webServiceURL,
-        authenticationToken: serialNumber,  // Usamos el serialNumber como token
+        authenticationToken: serialNumber,
         organizationName: "Leu Beauty",
         description: `Tarjeta de Fidelidad - ${client.name}`,
         foregroundColor: "rgb(239, 233, 221)",
@@ -85,6 +97,9 @@ export class PassService {
         }
       };
 
+      // Log del pass.json para verificación
+      console.log('Pass.json a generar:', JSON.stringify(passData, null, 2));
+
       // Crear directorio temporal para el pase
       const tempDir = path.join(os.tmpdir(), serialNumber);
       await fs.mkdir(tempDir, { recursive: true });
@@ -96,6 +111,7 @@ export class PassService {
         const targetPath = path.join(tempDir, file);
         try {
           await fs.copyFile(sourcePath, targetPath);
+          console.log(`Imagen copiada: ${file}`);
         } catch (error) {
           console.error(`Error copiando ${file}:`, error);
           throw new Error(`No se pudo copiar ${file}`);
@@ -105,9 +121,7 @@ export class PassService {
       // Guardar pass.json
       const passJsonPath = path.join(tempDir, 'pass.json');
       await fs.writeFile(passJsonPath, JSON.stringify(passData, null, 2));
-
-      // Log del pass.json generado para debugging
-      console.log('Pass.json generado:', await fs.readFile(passJsonPath, 'utf-8'));
+      console.log('Pass.json guardado en:', passJsonPath);
 
       return tempDir;
     } catch (error) {
@@ -115,6 +129,8 @@ export class PassService {
       throw error;
     }
   }
+
+  // ... resto de los métodos ...
 
   getNextReward(visits) {
     if (visits < 5) return "Postre Gratis";
