@@ -16,4 +16,6 @@ router.delete(
   unregisterDevice
 );
 
+router.get('/v1/devices/test', testRegistration);
+
 export default router;
