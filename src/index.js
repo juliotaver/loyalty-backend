@@ -1,4 +1,4 @@
-// backend/src/index.js
+// src/index.js
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -7,15 +7,13 @@ import clientRoutes from './routes/clientRoutes.js';
 import passRoutes from './routes/passRoutes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';  // Añadimos esta importación
+import { dirname } from 'path';
+import mongoose from 'mongoose';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 dotenv.config();
-
-// Conectar a MongoDB
-connectDB();
 
 const app = express();
 
@@ -27,6 +25,16 @@ app.use(cors({
 
 app.use(express.json());
 
+// Endpoint de prueba
+app.get('/test', (req, res) => {
+  res.json({
+    message: 'API funcionando',
+    mongodb_status: mongoose.connection.readyState,
+    environment: process.env.NODE_ENV,
+    mongodb_uri: process.env.MONGODB_URI ? 'Configurada' : 'No configurada'
+  });
+});
+
 // Rutas estáticas para certificados e imágenes
 app.use('/config/certificates', express.static(path.join(__dirname, '../config/certificates')));
 app.use('/config/images', express.static(path.join(__dirname, '../config/images')));
@@ -35,13 +43,21 @@ app.use('/config/images', express.static(path.join(__dirname, '../config/images'
 app.use('/api/clients', clientRoutes);
 app.use('/api/passes', passRoutes);
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await connectDB();
+    
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Servidor corriendo en puerto ${PORT}`);
+      console.log(`Estado de MongoDB: ${mongoose.connection.readyState}`);
+      console.log(`Variables de entorno cargadas: ${Object.keys(process.env).length}`);
+    });
+  } catch (error) {
+    console.error('Error al iniciar el servidor:', error);
+    process.exit(1);
+  }
+};
 
-// Ruta de health check para Railway
-app.get('/', (req, res) => {
-  res.json({ status: 'ok', message: 'Server is running' });
-});
+startServer();

@@ -1,91 +1,128 @@
-=== Successfully Built! ===
-
-Run:
-docker run -it us-west1.registry.rlwy.net/1f432372-9747-4025-881b-7f2cbdb4371d:f822da6d-05ce-408c-9815-ec8f5cb9648f
-
-Build time: 7.80 seconds
-Deploy complete
 Starting Container
+
 npm WARN config production Use `--omit=dev` instead.
-
 > loyalty-pass-backend@1.0.0 start
-> node src/index.js
 
-Error: The `uri` parameter to `openUri()` must be a string, got "undefined". Make sure the first parameter to `mongoose.connect()` or `mongoose.createConnection()` is a string.
+> node src/index.js
+Error: URI cannot contain options with no value
+
 container event container restart
-container event container died
+
 npm WARN config production Use `--omit=dev` instead.
 
+ 
+
 > loyalty-pass-backend@1.0.0 start
+
 > node src/index.js
 
-Error: The `uri` parameter to `openUri()` must be a string, got "undefined". Make sure the first parameter to `mongoose.connect()` or `mongoose.createConnection()` is a string.
+ 
+
+Error: URI cannot contain options with no value
+
 container event container restart
-container event container died
+
 npm WARN config production Use `--omit=dev` instead.
 
+ 
+
 > loyalty-pass-backend@1.0.0 start
+
 > node src/index.js
 
-Error: The `uri` parameter to `openUri()` must be a string, got "undefined". Make sure the first parameter to `mongoose.connect()` or `mongoose.createConnection()` is a string.
+ 
+
+Error: URI cannot contain options with no value
+
+container event container died
+
+npm WARN config production Use `--omit=dev` instead.
+
+ 
+
+> loyalty-pass-backend@1.0.0 start
+
+> node src/index.js
+
+ 
+
+Error: URI cannot contain options with no value
+
+container event container died
+
+npm WARN config production Use `--omit=dev` instead.
+
+ 
+
+> loyalty-pass-backend@1.0.0 start
+
+> node src/index.js
+
+ 
+
+Error: URI cannot contain options with no value
+
 container event container restart
-container event container died
+
 npm WARN config production Use `--omit=dev` instead.
 
+ 
+
 > loyalty-pass-backend@1.0.0 start
+
 > node src/index.js
 
-Error: The `uri` parameter to `openUri()` must be a string, got "undefined". Make sure the first parameter to `mongoose.connect()` or `mongoose.createConnection()` is a string.
-container event container died
+ 
+
+Error: URI cannot contain options with no value
+
+container event container restart
+
+npm WARN config production Use `--omit=dev` instead.
+
+ 
+
+> loyalty-pass-backend@1.0.0 start
+
+> node src/index.js
+
+ 
+
+Error: URI cannot contain options with no value
+
+container event container restart
+
+npm WARN config production Use `--omit=dev` instead.
+
+ 
+
+> loyalty-pass-backend@1.0.0 start
+
+> node src/index.js
+
+ 
+
+Error: URI cannot contain options with no value
 container event container restart
 npm WARN config production Use `--omit=dev` instead.
-
 > loyalty-pass-backend@1.0.0 start
+
+> node src/index.js
+Error: URI cannot contain options with no value
+
+container event container restart
+
+npm WARN config production Use `--omit=dev` instead.
+> loyalty-pass-backend@1.0.0 start
+
 > node src/index.js
 
-Error: The `uri` parameter to `openUri()` must be a string, got "undefined". Make sure the first parameter to `mongoose.connect()` or `mongoose.createConnection()` is a string.
-container event container died
-> loyalty-pass-backend@1.0.0 start
+Error: URI cannot contain options with no value
 
-Error: The `uri` parameter to `openUri()` must be a string, got "undefined". Make sure the first parameter to `mongoose.connect()` or `mongoose.createConnection()` is a string.
 container event container restart
-container event container died
+
 npm WARN config production Use `--omit=dev` instead.
 
 > loyalty-pass-backend@1.0.0 start
+
 > node src/index.js
-
-Error: The `uri` parameter to `openUri()` must be a string, got "undefined". Make sure the first parameter to `mongoose.connect()` or `mongoose.createConnection()` is a string.
-container event container restart
-container event container died
-npm WARN config production Use `--omit=dev` instead.
-
-> loyalty-pass-backend@1.0.0 start
-> node src/index.js
-
-Error: The `uri` parameter to `openUri()` must be a string, got "undefined". Make sure the first parameter to `mongoose.connect()` or `mongoose.createConnection()` is a string.
-container event container restart
-container event container died
-npm WARN config production Use `--omit=dev` instead.
-
-> loyalty-pass-backend@1.0.0 start
-> node src/index.js
-
-Error: The `uri` parameter to `openUri()` must be a string, got "undefined". Make sure the first parameter to `mongoose.connect()` or `mongoose.createConnection()` is a string.
-container event container restart
-container event container died
-npm WARN config production Use `--omit=dev` instead.
-
-> loyalty-pass-backend@1.0.0 start
-> node src/index.js
-
-Error: The `uri` parameter to `openUri()` must be a string, got "undefined". Make sure the first parameter to `mongoose.connect()` or `mongoose.createConnection()` is a string.
-container event container restart
-container event container died
-npm WARN config production Use `--omit=dev` instead.
-
-> loyalty-pass-backend@1.0.0 start
-> node src/index.js
-
-Error: The `uri` parameter to `openUri()` must be a string, got "undefined". Make sure the first parameter to `mongoose.connect()` or `mongoose.createConnection()` is a string.
-Deploy crashed
