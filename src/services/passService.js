@@ -19,14 +19,8 @@ export class PassService {
       ? path.join(process.cwd(), 'config/images')
       : process.env.PASS_IMAGES_PATH;
     
-    // URL base sin ningún sufijo
-    this.baseUrl = process.env.BACKEND_URL;
-    
-    console.log('PassService inicializado:', {
-      baseUrl: this.baseUrl,
-      passTypeId: this.passTypeId,
-      teamId: this.teamId
-    });
+    // URL base sin slash final
+    this.baseUrl = (process.env.BACKEND_URL || 'https://loyalty-backend-production-d6ae.up.railway.app').replace(/\/$/, '');
   }
 
   async generatePass(client) {
@@ -44,7 +38,7 @@ export class PassService {
         passTypeIdentifier: this.passTypeId,
         serialNumber: serialNumber,
         teamIdentifier: this.teamId,
-        webServiceURL: this.baseUrl, // URL sin /api
+        webServiceURL: this.baseUrl,  // URL base sin /api
         authenticationToken: serialNumber,
         organizationName: "Leu Beauty",
         description: `Tarjeta de Fidelidad - ${client.name}`,
