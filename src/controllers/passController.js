@@ -27,11 +27,9 @@ export const generatePassForClient = async (req, res) => {
       });
     }
 
-    // Usar la URL base del backend de producción
     const baseUrl = process.env.BACKEND_URL || 'https://loyalty-backend-production-d6ae.up.railway.app';
     const passUrl = `${baseUrl}/api/passes/${client.passSerialNumber}/download`;
 
-    // Generar código QR
     const qrCode = await QRCode.toDataURL(passUrl);
 
     res.json({
@@ -65,19 +63,15 @@ export const downloadPass = async (req, res) => {
       });
     }
 
-    // Generar el pase
     const passDir = await passService.generatePass(client);
     const pkpassPath = await passSigningService.createPassPackage(passDir, serialNumber);
 
-    // Configurar headers para la descarga
     res.setHeader('Content-Type', 'application/vnd.apple.pkpass');
     res.setHeader('Content-Disposition', `attachment; filename=${serialNumber}.pkpass`);
     
-    // Enviar el archivo
     const fileStream = createReadStream(pkpassPath);
     fileStream.pipe(res);
 
-    // Limpiar archivos temporales después de enviar
     fileStream.on('end', async () => {
       try {
         setTimeout(async () => {
@@ -88,20 +82,81 @@ export const downloadPass = async (req, res) => {
       }
     });
 
-    // Manejar errores en el stream
-    fileStream.on('error', (error) => {
-      console.error('Error al enviar el archivo:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Error al enviar el pase'
-      });
-    });
-
   } catch (error) {
     console.error('Error al descargar el pase:', error);
     res.status(500).json({
       success: false,
       message: 'Error al descargar el pase',
+      error: error.message
+    });
+  }
+};
+
+// Función para obtener el último pase de un cliente
+export const getLatestPass = async (req, res) => {
+  try {
+    const { serialNumber } = req.params;
+    const client = await Client.findOne({ passSerialNumber: serialNumber });
+    
+    if (!client) {
+      return res.status(404).json({
+        success: false,
+        message: 'Cliente no encontrado'
+      });
+    }
+
+    // Generar el pase actualizado
+    const passDir = await passService.generatePass(client);
+    const pkpassPath = await passSigningService.createPassPackage(passDir, serialNumber);
+
+    res.setHeader('Content-Type', 'application/vnd.apple.pkpass');
+    res.setHeader('Content-Disposition', `attachment; filename=${serialNumber}.pkpass`);
+    
+    const fileStream = createReadStream(pkpassPath);
+    fileStream.pipe(res);
+
+    fileStream.on('end', async () => {
+      try {
+        setTimeout(async () => {
+          await fs.rm(passDir, { recursive: true });
+        }, 1000);
+      } catch (error) {
+        console.error('Error al limpiar archivos temporales:', error);
+      }
+    });
+
+  } catch (error) {
+    console.error('Error al obtener el último pase:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener el último pase',
+      error: error.message
+    });
+  }
+};
+
+// Función para obtener números de serie de pases actualizados
+export const getSerialNumbers = async (req, res) => {
+  try {
+    const passesUpdatedSince = req.query.passesUpdatedSince 
+      ? new Date(req.query.passesUpdatedSince) 
+      : new Date(0);
+
+    const clients = await Client.find({
+      lastVisit: { $gt: passesUpdatedSince }
+    });
+
+    const serialNumbers = clients.map(client => client.passSerialNumber);
+
+    res.json({
+      serialNumbers,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error al obtener números de serie:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener números de serie',
       error: error.message
     });
   }

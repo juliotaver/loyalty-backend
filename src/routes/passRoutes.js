@@ -1,23 +1,20 @@
+// backend/src/routes/passRoutes.js
 import express from 'express';
 import { 
   generatePassForClient, 
-  downloadPass, 
-  scanPass,
-  getSerialNumbers,
-  getLatestPass
+  downloadPass,
+  getLatestPass,
+  getSerialNumbers
 } from '../controllers/passController.js';
 
 const router = express.Router();
 
-// Rutas existentes
+// Rutas principales
 router.get('/:clientId/generate', generatePassForClient);
 router.get('/:serialNumber/download', downloadPass);
 
-// Nueva ruta para escanear
-router.post('/:serialNumber/scan', scanPass);
-
-// Rutas requeridas por Apple Wallet
-router.get('/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier', getSerialNumbers);
+// Rutas para actualizaciones de Apple Wallet
 router.get('/v1/passes/:passTypeIdentifier/:serialNumber', getLatestPass);
+router.get('/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier', getSerialNumbers);
 
 export default router;
