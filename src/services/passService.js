@@ -8,7 +8,6 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// src/services/passService.js
 export class PassService {
   constructor() {
     this.passTypeId = process.env.PASS_TYPE_IDENTIFIER;
@@ -20,24 +19,22 @@ export class PassService {
       ? path.join(process.cwd(), 'config/images')
       : process.env.PASS_IMAGES_PATH;
     
-    // URL base para los servicios web del pase
-    this.baseUrl = process.env.BACKEND_URL || 'https://loyalty-backend-production-d6ae.up.railway.app';
+    // URL base sin ningún sufijo
+    this.baseUrl = process.env.BACKEND_URL;
     
-    console.log('PassService inicializado con:', {
-      passTypeId: this.passTypeId,
-      teamId: this.teamId,
+    console.log('PassService inicializado:', {
       baseUrl: this.baseUrl,
-      nodeEnv: process.env.NODE_ENV
+      passTypeId: this.passTypeId,
+      teamId: this.teamId
     });
   }
 
   async generatePass(client) {
     try {
       const serialNumber = client.passSerialNumber;
-      const webServiceURL = this.baseUrl;
 
       console.log('Generando pase con configuración:', {
-        webServiceURL,
+        webServiceURL: this.baseUrl,
         serialNumber,
         passTypeId: this.passTypeId
       });
@@ -47,7 +44,7 @@ export class PassService {
         passTypeIdentifier: this.passTypeId,
         serialNumber: serialNumber,
         teamIdentifier: this.teamId,
-        webServiceURL: webServiceURL,
+        webServiceURL: this.baseUrl, // URL sin /api
         authenticationToken: serialNumber,
         organizationName: "Leu Beauty",
         description: `Tarjeta de Fidelidad - ${client.name}`,
@@ -127,8 +124,6 @@ export class PassService {
       throw error;
     }
   }
-
-  // ... resto de los métodos ...
 
   getNextReward(visits) {
     if (visits < 5) return "Postre Gratis";

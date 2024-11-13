@@ -6,11 +6,12 @@ import connectDB from './config/database.js';
 import clientRoutes from './routes/clientRoutes.js';
 import passRoutes from './routes/passRoutes.js';
 import deviceRoutes from './routes/deviceRoutes.js';
+import Client from './models/Client.js';
 
 dotenv.config();
+
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
@@ -19,24 +20,73 @@ app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.originalUrl}`, {
     headers: req.headers,
     query: req.query,
-    params: req.params,
     body: req.body
   });
   next();
 });
 
-// Las rutas de Apple Wallet van ANTES que las rutas de API
-app.use('/', deviceRoutes);
+// Rutas de Apple Wallet
+app.post('/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber', async (req, res) => {
+  try {
+    const { deviceLibraryIdentifier, passTypeIdentifier, serialNumber } = req.params;
+    const { pushToken } = req.body;
 
-// Resto de rutas API
+    console.log('Registrando dispositivo:', {
+      deviceLibraryIdentifier,
+      passTypeIdentifier,
+      serialNumber,
+      pushToken
+    });
+
+    const client = await Client.findOne({ passSerialNumber: serialNumber });
+    if (!client) {
+      return res.status(404).send();
+    }
+
+    client.deviceLibraryIdentifier = deviceLibraryIdentifier;
+    client.pushToken = pushToken;
+    await client.save();
+
+    res.sendStatus(201);
+  } catch (error) {
+    console.error('Error en registro:', error);
+    res.sendStatus(500);
+  }
+});
+
+app.delete('/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber', async (req, res) => {
+  try {
+    const { deviceLibraryIdentifier, serialNumber } = req.params;
+    
+    const client = await Client.findOne({ 
+      passSerialNumber: serialNumber,
+      deviceLibraryIdentifier: deviceLibraryIdentifier 
+    });
+
+    if (!client) {
+      return res.sendStatus(404);
+    }
+
+    client.deviceLibraryIdentifier = undefined;
+    client.pushToken = undefined;
+    await client.save();
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error('Error en unregister:', error);
+    res.sendStatus(500);
+  }
+});
+
+// Log endpoint
+app.post('/v1/log', (req, res) => {
+  console.log('Log de Apple Wallet:', req.body);
+  res.sendStatus(200);
+});
+
+// Rutas API
 app.use('/api/clients', clientRoutes);
 app.use('/api/passes', passRoutes);
-
-// Error handling
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({ success: false, message: 'Error interno del servidor' });
-});
 
 const PORT = process.env.PORT || 3000;
 
