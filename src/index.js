@@ -1,4 +1,4 @@
-// src/index.js
+// backend/src/index.js
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -16,7 +16,16 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+// Configura CORS para permitir peticiones desde el frontend
+const corsOptions = {
+  origin: ['https://loyalty-frontend-iota.vercel.app', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Ruta de prueba
@@ -29,6 +38,12 @@ app.get('/', (req, res) => {
   });
 });
 
+// Middleware para logging de requests
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
+
 app.use('/api/clients', clientRoutes);
 app.use('/api/passes', passRoutes);
 
@@ -39,6 +54,7 @@ const startServer = async () => {
     await connectDB();
     app.listen(PORT, () => {
       console.log(`Servidor corriendo en puerto ${PORT}`);
+      console.log(`CORS configurado para: ${corsOptions.origin.join(', ')}`);
     });
   } catch (error) {
     console.error('Error al iniciar servidor:', error.message);
