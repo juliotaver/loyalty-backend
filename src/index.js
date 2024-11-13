@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import connectDB from './config/database.js';
 import clientRoutes from './routes/clientRoutes.js';
 import passRoutes from './routes/passRoutes.js';
+import deviceRoutes from './routes/deviceRoutes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -27,15 +28,20 @@ app.use(express.json());
 
 // Logging middleware
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - ${res.statusCode} - ${duration}ms`);
+  });
   next();
 });
 
 // Rutas
 app.use('/api/clients', clientRoutes);
 app.use('/api/passes', passRoutes);
+app.use('/api', deviceRoutes); // Rutas de dispositivos
 
-// Ruta de prueba
+// Ruta de prueba/health check
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok',
@@ -56,7 +62,6 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 
-// Iniciar servidor
 const startServer = async () => {
   try {
     await connectDB();

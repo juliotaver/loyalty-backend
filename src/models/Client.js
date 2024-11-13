@@ -1,3 +1,4 @@
+// backend/src/models/Client.js
 import mongoose from 'mongoose';
 
 const clientSchema = new mongoose.Schema({
@@ -26,12 +27,15 @@ const clientSchema = new mongoose.Schema({
     type: String,
     unique: true
   },
+  deviceLibraryIdentifier: {
+    type: String
+  },
+  pushToken: {
+    type: String
+  },
   lastVisit: {
     type: Date,
     default: Date.now
-  },
-  deviceLibraryIdentifier: {
-    type: String
   }
 });
 

@@ -111,15 +111,22 @@ export const scanPass = async (req, res) => {
     }
 
     // Incrementar visitas
-    client.visits = (client.visits + 1) % 26; // Reset a 0 después de 25 visitas
+    client.visits = (client.visits + 1) % 26;
     client.lastVisit = new Date();
     await client.save();
 
     console.log('Visita registrada para:', client.name, 'Total visitas:', client.visits);
 
-    // Generar el pase actualizado
-    const passDir = await passService.generatePass(client);
-    const pkpassPath = await passSigningService.createPassPackage(passDir, serialNumber);
+    // Si el cliente tiene un pushToken, enviar notificación
+    if (client.pushToken) {
+      try {
+        const pushService = new PassPushService();
+        await pushService.pushUpdate(client.pushToken);
+        console.log('Notificación push enviada');
+      } catch (pushError) {
+        console.error('Error enviando notificación push:', pushError);
+      }
+    }
 
     res.json({
       success: true,
@@ -129,15 +136,6 @@ export const scanPass = async (req, res) => {
         nextReward: passService.getNextReward(client.visits)
       }
     });
-
-    // Limpiar archivos temporales
-    setTimeout(async () => {
-      try {
-        await fs.rm(passDir, { recursive: true });
-      } catch (error) {
-        console.error('Error al limpiar archivos temporales:', error);
-      }
-    }, 1000);
 
   } catch (error) {
     console.error('Error al escanear pase:', error);
