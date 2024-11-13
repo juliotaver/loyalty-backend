@@ -14,16 +14,33 @@ const connectDB = async () => {
 
     console.log('Intentando conectar a MongoDB...');
 
-    await mongoose.connect(mongoUri);
+    const options = {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    };
 
-    console.log('MongoDB Conectado');
+    await mongoose.connect(mongoUri, options);
+
+    console.log('MongoDB Conectado exitosamente');
+
+    // Manejadores de eventos de conexión
+    mongoose.connection.on('connected', () => {
+      console.log('Mongoose conectado a MongoDB');
+    });
 
     mongoose.connection.on('error', (err) => {
-      console.error('Error de Mongoose:', err);
+      console.error('Error de conexión de Mongoose:', err);
+    });
+
+    mongoose.connection.on('disconnected', () => {
+      console.log('Mongoose desconectado de MongoDB');
     });
 
   } catch (error) {
-    console.error('Error al conectar a MongoDB:', error);
+    console.error('Error al conectar a MongoDB:', error.message);
+    console.error('URI de MongoDB (sin contraseña):', 
+      process.env.MONGODB_URI?.replace(/\/\/.*@/, '//***:***@')
+    );
     throw error;
   }
 };
