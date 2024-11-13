@@ -15,6 +15,7 @@ const __dirname = dirname(__filename);
 const passService = new PassService();
 const passSigningService = new PassSigningService();
 
+// Generar pase para cliente
 export const generatePassForClient = async (req, res) => {
   try {
     const { clientId } = req.params;
@@ -51,6 +52,7 @@ export const generatePassForClient = async (req, res) => {
   }
 };
 
+// Descargar pase
 export const downloadPass = async (req, res) => {
   try {
     const { serialNumber } = req.params;
@@ -92,7 +94,62 @@ export const downloadPass = async (req, res) => {
   }
 };
 
-// Función para obtener el último pase de un cliente
+// Escanear y actualizar visitas
+export const scanPass = async (req, res) => {
+  try {
+    const { serialNumber } = req.params;
+    
+    console.log('Escaneando pase:', serialNumber);
+
+    const client = await Client.findOne({ passSerialNumber: serialNumber });
+    if (!client) {
+      console.log('Cliente no encontrado para el serial:', serialNumber);
+      return res.status(404).json({
+        success: false,
+        message: 'Pase no encontrado'
+      });
+    }
+
+    // Incrementar visitas
+    client.visits = (client.visits + 1) % 26; // Reset a 0 después de 25 visitas
+    client.lastVisit = new Date();
+    await client.save();
+
+    console.log('Visita registrada para:', client.name, 'Total visitas:', client.visits);
+
+    // Generar el pase actualizado
+    const passDir = await passService.generatePass(client);
+    const pkpassPath = await passSigningService.createPassPackage(passDir, serialNumber);
+
+    res.json({
+      success: true,
+      data: {
+        visits: client.visits,
+        name: client.name,
+        nextReward: passService.getNextReward(client.visits)
+      }
+    });
+
+    // Limpiar archivos temporales
+    setTimeout(async () => {
+      try {
+        await fs.rm(passDir, { recursive: true });
+      } catch (error) {
+        console.error('Error al limpiar archivos temporales:', error);
+      }
+    }, 1000);
+
+  } catch (error) {
+    console.error('Error al escanear pase:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al escanear el pase',
+      error: error.message
+    });
+  }
+};
+
+// Obtener último pase
 export const getLatestPass = async (req, res) => {
   try {
     const { serialNumber } = req.params;
@@ -105,7 +162,6 @@ export const getLatestPass = async (req, res) => {
       });
     }
 
-    // Generar el pase actualizado
     const passDir = await passService.generatePass(client);
     const pkpassPath = await passSigningService.createPassPackage(passDir, serialNumber);
 
@@ -124,7 +180,6 @@ export const getLatestPass = async (req, res) => {
         console.error('Error al limpiar archivos temporales:', error);
       }
     });
-
   } catch (error) {
     console.error('Error al obtener el último pase:', error);
     res.status(500).json({
@@ -135,7 +190,7 @@ export const getLatestPass = async (req, res) => {
   }
 };
 
-// Función para obtener números de serie de pases actualizados
+// Obtener números de serie de pases actualizados
 export const getSerialNumbers = async (req, res) => {
   try {
     const passesUpdatedSince = req.query.passesUpdatedSince 
