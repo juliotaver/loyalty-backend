@@ -8,16 +8,16 @@ import passRoutes from './routes/passRoutes.js';
 import deviceRoutes from './routes/deviceRoutes.js';
 
 dotenv.config();
-
 const app = express();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// Logging middleware
+// Logging mejorado
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`, {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.originalUrl}`, {
+    headers: req.headers,
     query: req.query,
     params: req.params,
     body: req.body
@@ -25,20 +25,17 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rutas de API
+// Las rutas de Apple Wallet van ANTES que las rutas de API
+app.use('/', deviceRoutes);
+
+// Resto de rutas API
 app.use('/api/clients', clientRoutes);
 app.use('/api/passes', passRoutes);
-// Todas las rutas de Apple Wallet van directamente en /
-app.use('/', deviceRoutes);
 
 // Error handling
 app.use((err, req, res, next) => {
   console.error('Error:', err);
-  res.status(500).json({
-    success: false,
-    message: 'Error interno del servidor',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
+  res.status(500).json({ success: false, message: 'Error interno del servidor' });
 });
 
 const PORT = process.env.PORT || 3000;
@@ -48,6 +45,7 @@ const startServer = async () => {
     await connectDB();
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`Servidor corriendo en puerto ${PORT}`);
+      console.log(`URL base: ${process.env.BACKEND_URL}`);
     });
   } catch (error) {
     console.error('Error al iniciar servidor:', error);

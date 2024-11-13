@@ -34,14 +34,12 @@ export class PassService {
   async generatePass(client) {
     try {
       const serialNumber = client.passSerialNumber;
-      const webServiceURL = `${this.baseUrl}/api`;
+      const webServiceURL = this.baseUrl;
 
       console.log('Generando pase con configuración:', {
         webServiceURL,
         serialNumber,
-        passTypeId: this.passTypeId,
-        baseUrl: this.baseUrl,
-        envBackendUrl: process.env.BACKEND_URL
+        passTypeId: this.passTypeId
       });
 
       const passData = {
