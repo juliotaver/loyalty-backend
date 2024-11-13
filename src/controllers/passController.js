@@ -1,6 +1,7 @@
 // backend/src/controllers/passController.js
 import { PassService } from '../services/passService.js';
 import { PassSigningService } from '../services/passSigningService.js';
+import { PassPushService } from '../services/passPushService.js';  // Añadir esta importación
 import Client from '../models/Client.js';
 import QRCode from 'qrcode';
 import path from 'path';
@@ -14,6 +15,7 @@ const __dirname = dirname(__filename);
 
 const passService = new PassService();
 const passSigningService = new PassSigningService();
+const passPushService = new PassPushService(); 
 
 // Generar pase para cliente
 export const generatePassForClient = async (req, res) => {
@@ -103,7 +105,6 @@ export const scanPass = async (req, res) => {
 
     const client = await Client.findOne({ passSerialNumber: serialNumber });
     if (!client) {
-      console.log('Cliente no encontrado para el serial:', serialNumber);
       return res.status(404).json({
         success: false,
         message: 'Pase no encontrado'
@@ -115,19 +116,19 @@ export const scanPass = async (req, res) => {
     client.lastVisit = new Date();
     await client.save();
 
-    console.log('Visita registrada para:', client.name, 'Total visitas:', client.visits);
+    console.log(`Visita registrada para: ${client.name} Total visitas: ${client.visits}`);
 
     // Si el cliente tiene un pushToken, enviar notificación
     if (client.pushToken) {
       try {
-        const pushService = new PassPushService();
-        await pushService.pushUpdate(client.pushToken);
+        await passPushService.pushUpdate(client.pushToken);
         console.log('Notificación push enviada');
       } catch (pushError) {
-        console.error('Error enviando notificación push:', pushError);
+        console.error('Error enviando push:', pushError);
       }
     }
 
+    // Responder al cliente
     res.json({
       success: true,
       data: {
