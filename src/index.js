@@ -6,51 +6,32 @@ import connectDB from './config/database.js';
 import clientRoutes from './routes/clientRoutes.js';
 import passRoutes from './routes/passRoutes.js';
 import deviceRoutes from './routes/deviceRoutes.js';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 dotenv.config();
 
 const app = express();
 
 // Middleware
-app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true
-}));
-
+app.use(cors());
 app.use(express.json());
 
 // Logging middleware
 app.use((req, res, next) => {
-  const start = Date.now();
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - ${res.statusCode} - ${duration}ms`);
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`, {
+    query: req.query,
+    params: req.params,
+    body: req.body
   });
   next();
 });
 
-// Rutas
+// Rutas de API
 app.use('/api/clients', clientRoutes);
 app.use('/api/passes', passRoutes);
-app.use('/api', deviceRoutes); // Rutas de dispositivos
+// Todas las rutas de Apple Wallet van directamente en /
+app.use('/', deviceRoutes);
 
-// Ruta de prueba/health check
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok',
-    env: process.env.NODE_ENV,
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Manejador de errores global
+// Error handling
 app.use((err, req, res, next) => {
   console.error('Error:', err);
   res.status(500).json({
