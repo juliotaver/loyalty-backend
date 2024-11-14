@@ -1,29 +1,36 @@
 // backend/src/services/passPushService.js
 import http2 from 'http2';
 import jwt from 'jsonwebtoken';
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 export class PassPushService {
   constructor() {
     this.teamId = process.env.TEAM_IDENTIFIER;
     this.passTypeId = process.env.PASS_TYPE_IDENTIFIER;
     this.keyId = process.env.APPLE_KEY_ID;
-    this.certsPath = process.env.NODE_ENV === 'production'
-      ? path.join(process.cwd(), 'config/certificates')
-      : process.env.PASS_CERTIFICATES_PATH;
+    
+    // Decodificar la clave base64
+    const base64Key = process.env.APPLE_PUSH_KEY;
+    this.privateKey = base64Key ? Buffer.from(base64Key, 'base64').toString() : null;
+
+    if (!this.privateKey) {
+      console.error('APPLE_PUSH_KEY no está configurada');
+    }
+
+    console.log('PassPushService inicializado:', {
+      teamId: this.teamId,
+      passTypeId: this.passTypeId,
+      keyId: this.keyId,
+      hasPrivateKey: !!this.privateKey
+    });
   }
 
   async generateToken() {
     try {
-      const privateKey = await fs.readFile(path.join(this.certsPath, 'push.p8'));
-      
-      const token = jwt.sign({}, privateKey, {
+      if (!this.privateKey) {
+        throw new Error('APPLE_PUSH_KEY no está configurada');
+      }
+
+      const token = jwt.sign({}, this.privateKey, {
         algorithm: 'ES256',
         header: {
           alg: 'ES256',
@@ -43,10 +50,11 @@ export class PassPushService {
   async pushUpdate(pushToken) {
     return new Promise(async (resolve, reject) => {
       try {
-        console.log('Generando token JWT para push...');
-        const token = await this.generateToken();
+        console.log('Iniciando push update para token:', pushToken);
         
-        console.log('Conectando a Apple Push Service...');
+        const token = await this.generateToken();
+        console.log('Token JWT generado exitosamente');
+        
         const client = http2.connect('https://api.push.apple.com');
 
         client.on('error', (err) => {
@@ -64,22 +72,32 @@ export class PassPushService {
         };
 
         console.log('Enviando push con headers:', {
-          ...headers,
-          authorization: 'bearer [TOKEN]' // Ocultar token en logs
+          ':method': headers[':method'],
+          ':path': headers[':path'],
+          'apns-topic': headers['apns-topic'],
+          'apns-push-type': headers['apns-push-type']
         });
 
         const req = client.request(headers);
 
         req.on('response', (headers) => {
-          console.log('Respuesta push:', {
-            status: headers[':status'],
-            headers
+          const status = headers[':status'];
+          console.log('Respuesta de push:', {
+            status,
+            apnsId: headers['apns-id']
           });
           
-          if (headers[':status'] === 200) {
+          if (status === 200) {
+            console.log('Push enviado exitosamente');
             resolve();
           } else {
-            reject(new Error(`Push falló con status ${headers[':status']}`));
+            const error = new Error(`Push falló con status ${status}`);
+            console.error('Push falló:', {
+              status,
+              apnsId: headers['apns-id'],
+              reason: headers['reason']
+            });
+            reject(error);
           }
         });
 
