@@ -1,7 +1,7 @@
 // backend/src/controllers/passController.js
 import { PassService } from '../services/passService.js';
 import { PassSigningService } from '../services/passSigningService.js';
-import { PassPushService } from '../services/passPushService.js';  // Añadir esta importación
+import { PassPushService } from '../services/passPushService.js';
 import { GooglePassService } from '../services/googlePassService.js';
 import Client from '../models/Client.js';
 import QRCode from 'qrcode';
@@ -17,9 +17,9 @@ const __dirname = dirname(__filename);
 const passService = new PassService();
 const passSigningService = new PassSigningService();
 const passPushService = new PassPushService(); 
+const googlePassService = new GooglePassService();  // Asegúrate de instanciar el servicio de Google Pass
 
-// Generar pase para cliente
-export const generatePassForClient = async (req, res) => {
+const generatePassForClient = async (req, res) => {
   try {
     const { clientId } = req.params;
     
@@ -55,7 +55,7 @@ export const generatePassForClient = async (req, res) => {
   }
 };
 
-export const generateGooglePassForClient = async (req, res) => {
+const generateGooglePassForClient = async (req, res) => {
   try {
     const { clientId } = req.params;
     
@@ -87,9 +87,7 @@ export const generateGooglePassForClient = async (req, res) => {
   }
 };
 
-
-// Descargar pase
-export const downloadPass = async (req, res) => {
+const downloadPass = async (req, res) => {
   try {
     const { serialNumber } = req.params;
     
@@ -119,7 +117,6 @@ export const downloadPass = async (req, res) => {
         console.error('Error al limpiar archivos temporales:', error);
       }
     });
-
   } catch (error) {
     console.error('Error al descargar el pase:', error);
     res.status(500).json({
@@ -130,8 +127,7 @@ export const downloadPass = async (req, res) => {
   }
 };
 
-// Escanear y actualizar visitas
-export const scanPass = async (req, res) => {
+const scanPass = async (req, res) => {
   try {
     const { serialNumber } = req.params;
     
@@ -180,7 +176,6 @@ export const scanPass = async (req, res) => {
         nextReward: passService.getNextReward(client.visits)
       }
     });
-
   } catch (error) {
     console.error('Error al escanear pase:', error);
     res.status(500).json({
@@ -191,8 +186,7 @@ export const scanPass = async (req, res) => {
   }
 };
 
-// Obtener último pase
-export const getLatestPass = async (req, res) => {
+const getLatestPass = async (req, res) => {
   try {
     const { serialNumber } = req.params;
     const client = await Client.findOne({ passSerialNumber: serialNumber });
@@ -232,8 +226,7 @@ export const getLatestPass = async (req, res) => {
   }
 };
 
-// Obtener números de serie de pases actualizados
-export const getSerialNumbers = async (req, res) => {
+const getSerialNumbers = async (req, res) => {
   try {
     const passesUpdatedSince = req.query.passesUpdatedSince 
       ? new Date(req.query.passesUpdatedSince) 
@@ -259,4 +252,12 @@ export const getSerialNumbers = async (req, res) => {
   }
 };
 
-export { downloadPass, getLatestPass, getSerialNumbers };
+// Exportar todas las funciones juntas al final
+export {
+  generatePassForClient,
+  generateGooglePassForClient,
+  downloadPass,
+  scanPass,
+  getLatestPass,
+  getSerialNumbers
+};
