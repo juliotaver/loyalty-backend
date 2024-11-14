@@ -2,6 +2,7 @@
 import express from 'express';
 import { 
   generatePassForClient, 
+  generateGooglePassForClient,
   downloadPass,
   scanPass,
   getLatestPass,
@@ -22,9 +23,11 @@ router.post('/test-scan', (req, res) => {
 // Rutas básicas de pases
 router.get('/:clientId/generate', generatePassForClient);
 router.get('/:serialNumber/download', downloadPass);
+router.get('/:clientId/google', generateGooglePassForClient);
 router.post('/:serialNumber/scan', scanPass);  // Asegúrate de que esta línea esté presente
 
 // Rutas para actualizaciones de Apple Wallet
+router.post('/:serialNumber/scan', scanPass);
 router.get('/v1/passes/:passTypeIdentifier/:serialNumber', getLatestPass);
 router.get('/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier', getSerialNumbers);
 

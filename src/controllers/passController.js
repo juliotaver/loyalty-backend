@@ -2,6 +2,7 @@
 import { PassService } from '../services/passService.js';
 import { PassSigningService } from '../services/passSigningService.js';
 import { PassPushService } from '../services/passPushService.js';  // Añadir esta importación
+import { GooglePassService } from '../services/googlePassService.js';
 import Client from '../models/Client.js';
 import QRCode from 'qrcode';
 import path from 'path';
@@ -53,6 +54,39 @@ export const generatePassForClient = async (req, res) => {
     });
   }
 };
+
+export const generateGooglePassForClient = async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({
+        success: false,
+        message: 'Cliente no encontrado'
+      });
+    }
+
+    const googlePass = await googlePassService.generatePass(client);
+
+    res.json({
+      success: true,
+      data: {
+        saveUrl: googlePass.saveUrl,
+        clientId: client._id,
+        serialNumber: client.passSerialNumber
+      }
+    });
+  } catch (error) {
+    console.error('Error al generar el pase de Google:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al generar el pase de Google',
+      error: error.message
+    });
+  }
+};
+
 
 // Descargar pase
 export const downloadPass = async (req, res) => {
@@ -125,6 +159,15 @@ export const scanPass = async (req, res) => {
         console.log('Notificación push enviada correctamente');
       } catch (pushError) {
         console.error('Error en notificación push:', pushError);
+      }
+    }
+
+    if (client.googlePassId) {
+      try {
+        await googlePassService.updatePass(client);
+        console.log('Pase de Google actualizado');
+      } catch (googleError) {
+        console.error('Error actualizando pase de Google:', googleError);
       }
     }
 
@@ -215,3 +258,5 @@ export const getSerialNumbers = async (req, res) => {
     });
   }
 };
+
+export { downloadPass, getLatestPass, getSerialNumbers };
