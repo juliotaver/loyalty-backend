@@ -92,3 +92,62 @@ export const updateVisits = async (req, res) => {
       });
     }
   };
+  export const getAllClients = async (req, res) => {
+    try {
+      const clients = await Client.find({})
+        .sort({ lastVisit: -1 }); // Ordenar por última visita, más reciente primero
+  
+      res.json({
+        success: true,
+        data: clients
+      });
+    } catch (error) {
+      console.error('Error al obtener clientes:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener clientes',
+        error: error.message
+      });
+    }
+  };
+  
+  export const getClientStats = async (req, res) => {
+    try {
+      const totalClients = await Client.countDocuments();
+      
+      // Visitas de hoy
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayVisits = await Client.countDocuments({
+        lastVisit: { $gte: today }
+      });
+  
+      // Clientes frecuentes (10+ visitas)
+      const frequentClients = await Client.countDocuments({
+        visits: { $gte: 10 }
+      });
+  
+      // Total de recompensas ganadas
+      const clients = await Client.find({}, 'visits');
+      const totalRewards = clients.reduce((acc, client) => {
+        return acc + Math.floor(client.visits / 5);
+      }, 0);
+  
+      res.json({
+        success: true,
+        data: {
+          totalClients,
+          todayVisits,
+          frequentClients,
+          totalRewards
+        }
+      });
+    } catch (error) {
+      console.error('Error al obtener estadísticas:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener estadísticas',
+        error: error.message
+      });
+    }
+  };

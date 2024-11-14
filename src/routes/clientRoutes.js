@@ -5,5 +5,7 @@ const router = express.Router();
 
 router.post('/', createClient);
 router.post('/:clientId/visits', updateVisits);
+router.get('/', getAllClients);
+router.get('/stats', getClientStats);
 
 export default router;
