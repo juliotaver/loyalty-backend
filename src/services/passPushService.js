@@ -1,5 +1,6 @@
 // backend/src/services/passPushService.js
 import http2 from 'http2';
+import jwt from 'jsonwebtoken';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -18,11 +19,34 @@ export class PassPushService {
       : process.env.PASS_CERTIFICATES_PATH;
   }
 
+  async generateToken() {
+    try {
+      const privateKey = await fs.readFile(path.join(this.certsPath, 'push.p8'));
+      
+      const token = jwt.sign({}, privateKey, {
+        algorithm: 'ES256',
+        header: {
+          alg: 'ES256',
+          kid: this.keyId
+        },
+        issuer: this.teamId,
+        expiresIn: '1h'
+      });
+
+      return token;
+    } catch (error) {
+      console.error('Error generando token:', error);
+      throw error;
+    }
+  }
+
   async pushUpdate(pushToken) {
     return new Promise(async (resolve, reject) => {
       try {
-        console.log('Enviando push a token:', pushToken);
-
+        console.log('Generando token JWT para push...');
+        const token = await this.generateToken();
+        
+        console.log('Conectando a Apple Push Service...');
         const client = http2.connect('https://api.push.apple.com');
 
         client.on('error', (err) => {
@@ -30,16 +54,28 @@ export class PassPushService {
           reject(err);
         });
 
-        const req = client.request({
+        const headers = {
           ':method': 'POST',
           ':path': `/3/device/${pushToken}`,
+          'authorization': `bearer ${token}`,
           'apns-topic': this.passTypeId,
           'apns-push-type': 'background',
           'content-type': 'application/json',
+        };
+
+        console.log('Enviando push con headers:', {
+          ...headers,
+          authorization: 'bearer [TOKEN]' // Ocultar token en logs
         });
 
+        const req = client.request(headers);
+
         req.on('response', (headers) => {
-          console.log('Respuesta push:', headers[':status']);
+          console.log('Respuesta push:', {
+            status: headers[':status'],
+            headers
+          });
+          
           if (headers[':status'] === 200) {
             resolve();
           } else {
@@ -52,7 +88,6 @@ export class PassPushService {
           reject(error);
         });
 
-        // Payload vacío para actualización de background
         const payload = JSON.stringify({
           aps: {
             'content-available': 1
@@ -61,7 +96,6 @@ export class PassPushService {
 
         req.end(payload);
 
-        // Cerrar la conexión después de enviar
         req.on('end', () => {
           client.close();
         });
