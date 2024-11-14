@@ -1,86 +1,120 @@
 // backend/src/services/googlePassService.js
 import { GoogleAuth } from 'google-auth-library';
-import { JWT } from 'google-auth-library';
 
 export class GooglePassService {
   constructor() {
     this.issuerId = process.env.GOOGLE_ISSUER_ID;
+    
+    // Corregir el formato de la clave privada
+    const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+    
     this.credentials = {
       client_email: process.env.GOOGLE_CLIENT_EMAIL,
-      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+      private_key: privateKey
     };
-    this.auth = new JWT({
-      email: this.credentials.client_email,
-      key: this.credentials.private_key,
-      scopes: ['https://www.googleapis.com/auth/wallet_object.issuer']
-    });
+
+    try {
+      this.auth = new GoogleAuth({
+        credentials: this.credentials,
+        scopes: ['https://www.googleapis.com/auth/wallet_object.issuer']
+      });
+
+      console.log('GooglePassService inicializado con:', {
+        issuerId: this.issuerId,
+        clientEmail: this.credentials.client_email,
+        hasPrivateKey: !!this.credentials.private_key
+      });
+    } catch (error) {
+      console.error('Error inicializando GooglePassService:', error);
+      throw error;
+    }
   }
 
   async generatePass(client) {
     try {
+      console.log('Generando pase Google para:', client.email);
+
+      const authClient = await this.auth.getClient();
+      console.log('Cliente de autenticación creado');
+
       const loyaltyObject = {
         id: `${this.issuerId}.${client.passSerialNumber}`,
         classId: `${this.issuerId}.loyalty_class`,
         state: 'ACTIVE',
-        loyaltyPoints: {
-          balance: {
-            int: client.visits
+        heroImage: {
+          sourceUri: {
+            uri: "https://ejemplo.com/logo.png"
           },
-          label: 'Visitas'
+          contentDescription: {
+            defaultValue: {
+              language: "es-ES",
+              value: "Logo Leu Beauty"
+            }
+          }
         },
         textModulesData: [
           {
-            header: 'Próxima Recompensa',
-            body: this.getNextReward(client.visits)
+            header: "Visitas",
+            body: `${client.visits} visitas`,
+            id: "visits"
+          },
+          {
+            header: "Próxima Recompensa",
+            body: this.getNextReward(client.visits),
+            id: "reward"
           }
         ],
         linksModuleData: {
           uris: [
             {
-              uri: 'https://leubeauty.com',
-              description: 'Sitio Web'
+              uri: "tel://7773621171",
+              description: "Llamar al salón"
             }
           ]
         },
-        accountName: client.name,
-        accountId: client.email
+        barcode: {
+          type: "QR_CODE",
+          value: client.passSerialNumber
+        },
+        locations: [
+          {
+            latitude: 18.9261,
+            longitude: -99.2333
+          }
+        ]
       };
 
-      const response = await fetch(
-        `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${(await this.auth.authorize()).access_token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(loyaltyObject)
-        }
-      );
+      console.log('Objeto de lealtad creado:', loyaltyObject.id);
 
-      if (!response.ok) {
-        throw new Error(`Error creando objeto: ${response.statusText}`);
-      }
+      const response = await authClient.request({
+        url: 'https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject',
+        method: 'POST',
+        data: loyaltyObject
+      });
 
-      const jwt = {
+      console.log('Pase creado exitosamente');
+
+      // Generar URL para guardar en Google Wallet
+      const claims = {
         iss: this.credentials.client_email,
         aud: 'google',
+        origins: [
+          'https://loyalty-frontend-iota.vercel.app',  // Tu dominio de Vercel
+          'https://loyalty-backend-production-d6ae.up.railway.app' // Tu dominio de Railway
+        ],
         typ: 'savetowallet',
         payload: {
-          loyaltyObjects: [{
-            id: loyaltyObject.id
-          }]
+          loyaltyObjects: [{ id: loyaltyObject.id }]
         }
       };
 
-      const token = await this.auth.sign(jwt);
-      
-      return {
-        saveUrl: `https://pay.google.com/gp/v/save/${token}`
-      };
+      const token = await authClient.sign(claims);
+      const saveUrl = `https://pay.google.com/gp/v/save/${token}`;
+
+      return { saveUrl };
     } catch (error) {
-      console.error('Error generando pase Google:', error);
-      throw error;
+      console.error('Error detallado al generar pase Google:', error);
+      throw new Error(`Error al generar pase Google: ${error.message}`);
     }
   }
 
