@@ -1,54 +1,80 @@
 // backend/src/services/googlePassService.js
-import { GoogleAuth, JWT } from 'google-auth-library';
 import jsonwebtoken from 'jsonwebtoken';
 
 export class GooglePassService {
   constructor() {
     this.issuerId = process.env.GOOGLE_ISSUER_ID;
-    const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
     
-    this.credentials = {
-      client_email: process.env.GOOGLE_CLIENT_EMAIL,
-      private_key: privateKey
-    };
+    // Formatear correctamente la clave privada
+    try {
+      // Asegurarse de que la clave tenga el formato correcto
+      let privateKey = process.env.GOOGLE_PRIVATE_KEY || '';
+      
+      // Si la clave no tiene los delimitadores, añadirlos
+      if (!privateKey.includes('BEGIN PRIVATE KEY')) {
+        privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----\n`;
+      }
+      
+      // Reemplazar los \n literales por saltos de línea reales
+      this.privateKey = privateKey.replace(/\\n/g, '\n');
+      
+      this.clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
 
-    console.log('Inicializando con:', {
-      issuerId: this.issuerId,
-      hasEmail: !!this.credentials.client_email,
-      hasKey: !!this.credentials.private_key
-    });
+      console.log('Clave privada formateada:', {
+        hasDelimiters: this.privateKey.includes('BEGIN PRIVATE KEY'),
+        length: this.privateKey.length,
+        email: this.clientEmail,
+        issuerId: this.issuerId
+      });
+    } catch (error) {
+      console.error('Error al formatear la clave privada:', error);
+      throw error;
+    }
   }
 
   async generatePass(client) {
     try {
       console.log('Generando pase Google para:', client.email);
 
-      // Usar JWT directamente en lugar de GoogleAuth
-      const token = jsonwebtoken.sign(
-        {
-          iss: this.credentials.client_email,
-          aud: 'https://www.googleapis.com/oauth2/v4/token',
-          scope: 'https://www.googleapis.com/auth/wallet_object.issuer',
-          exp: Math.floor(Date.now() / 1000) + 3600,
-          iat: Math.floor(Date.now() / 1000)
-        },
-        this.credentials.private_key,
-        { algorithm: 'RS256' }
-      );
+      // Crear el JWT para autenticación
+      const jwtClaims = {
+        iss: this.clientEmail,
+        scope: 'https://www.googleapis.com/auth/wallet_object.issuer',
+        aud: 'https://oauth2.googleapis.com/token',
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        iat: Math.floor(Date.now() / 1000)
+      };
 
-      const response = await fetch('https://www.googleapis.com/oauth2/v4/token', {
+      // Firmar el JWT
+      const signedJwt = jsonwebtoken.sign(jwtClaims, this.privateKey, {
+        algorithm: 'RS256',
+        header: {
+          "alg": "RS256",
+          "typ": "JWT"
+        }
+      });
+
+      // Obtener el token de acceso
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-          assertion: token
+          'grant_type': 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+          'assertion': signedJwt
         })
       });
 
-      const { access_token } = await response.json();
+      if (!tokenResponse.ok) {
+        const error = await tokenResponse.text();
+        console.error('Error al obtener token:', error);
+        throw new Error(`Error al obtener token: ${error}`);
+      }
 
+      const { access_token } = await tokenResponse.json();
+
+      // Crear el objeto de lealtad
       const loyaltyObject = {
         id: `${this.issuerId}.${client.passSerialNumber}`,
         classId: `${this.issuerId}.loyalty_class`,
@@ -65,57 +91,30 @@ export class GooglePassService {
             id: "reward"
           }
         ],
-        linksModuleData: {
-          uris: [
-            {
-              uri: "tel://7773621171",
-              description: "Llamar al salón"
-            }
-          ]
-        },
         barcode: {
           type: "QR_CODE",
           value: client.passSerialNumber
-        },
-        locations: [
-          {
-            latitude: 18.9261,
-            longitude: -99.2333
-          }
-        ]
-      };
-
-      // Crear el objeto de lealtad
-      const objectResponse = await fetch('https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(loyaltyObject)
-      });
-
-      if (!objectResponse.ok) {
-        throw new Error(`Error creando objeto: ${await objectResponse.text()}`);
-      }
-
-      // Generar JWT para el botón "Añadir a Google Wallet"
-      const claims = {
-        iss: this.credentials.client_email,
-        aud: 'google',
-        origins: ['https://loyalty-frontend-iota.vercel.app'],
-        typ: 'savetowallet',
-        payload: {
-          loyaltyObjects: [{ id: loyaltyObject.id }]
         }
       };
 
-      const saveToken = jsonwebtoken.sign(claims, this.credentials.private_key, { algorithm: 'RS256' });
-      const saveUrl = `https://pay.google.com/gp/v/save/${saveToken}`;
+      // Crear el JWT para el botón de guardar
+      const saveJwt = jsonwebtoken.sign({
+        iss: this.clientEmail,
+        aud: 'google',
+        typ: 'savetowallet',
+        iat: Math.floor(Date.now() / 1000),
+        payload: {
+          loyaltyObjects: [{
+            id: loyaltyObject.id,
+            classId: loyaltyObject.classId
+          }]
+        }
+      }, this.privateKey, { algorithm: 'RS256' });
 
-      console.log('Pase generado exitosamente:', { saveUrl });
-      
-      return { saveUrl };
+      return {
+        saveUrl: `https://pay.google.com/gp/v/save/${saveJwt}`
+      };
+
     } catch (error) {
       console.error('Error detallado al generar pase Google:', error);
       throw error;
